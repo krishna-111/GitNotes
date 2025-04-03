@@ -350,6 +350,156 @@ git push -u origin main
 
 ---
 
+In the process of connecting local repository to remote repository, we might encounter some problems related to authentication sometimes. Here is the detailed solution to it
+
+The error **"git@github.com: Permission denied (publickey)"** indicates that Git cannot authenticate using SSH. Here’s how to fix it:
+
+---
+
+### **1. Check If SSH Key Exists**
+Run:  
+```sh
+ls ~/.ssh/id_rsa.pub
+```
+or (on Windows Command Prompt or PowerShell):
+```sh
+dir C:\Users\YourUsername\.ssh\id_rsa.pub
+```
+- If the file **does not exist**, generate a new SSH key (step 2).
+- If it exists, add it to GitHub (step 3).
+
+---
+
+### **2. Generate a New SSH Key (If Missing)**
+Run:  
+```sh
+ssh-keygen -t rsa -b 4096 -C "your-email@example.com"
+```
+- Press **Enter** to save it in the default location (`~/.ssh/id_rsa`).
+- Set a passphrase (or press Enter for none).
+
+Then add it to the SSH agent:
+```sh
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_rsa
+```
+(For Windows, use `ssh-add C:\Users\YourUsername\.ssh\id_rsa`)
+
+---
+
+### **3. Add SSH Key to GitHub**
+1. Copy entire SSH key:
+   ```sh
+   type C:\Users\YourUsername\.ssh\id_rsa.pub
+
+   ```
+2. Go to **GitHub → Settings → SSH and GPG keys**.
+3. Click **New SSH Key**.
+4. Paste the key and save.
+
+---
+
+### **4. Test SSH Connection**
+Run:
+```sh
+ssh -T git@github.com
+```
+If successful, you should see:
+```
+Hi username! You've successfully authenticated...
+```
+If not, try running:
+```sh
+ssh -vT git@github.com
+```
+to debug.
+
+---
+
+### **5. Verify Remote URL**
+Check if you're using SSH or HTTPS:
+```sh
+git remote -v
+```
+If you see `git@github.com:username/repo.git`, it’s using SSH.
+
+If SSH still fails, switch to HTTPS:
+```sh
+git remote set-url origin https://github.com/username/repo.git
+```
+Then push using:
+```sh
+git push -u origin master
+```
+
+---
+
+### **6. Restart SSH Agent (If Needed)**
+If SSH still fails, restart the agent:
+```sh
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_rsa
+```
+
+Try pushing again:
+```sh
+git push -u origin master
+```
+
+Another problem we might encounter if we try to change old commit from new commit in local repo, it works but in remote commit we have to do some work
+
+You ran:  
+```sh
+git reset --hard <some_commit>
+```
+which **rewinds your local branch** to an older commit. But the remote branch still has **newer commits**, so when you try to push, Git rejects it because **your local branch is behind the remote branch**.  
+
+---
+
+## **How to Fix the Issue?**  
+
+### **Option 1: Force Push (If You Want to Overwrite Remote History)**  
+If you are sure you want to **discard** all newer commits from the remote branch, use:  
+```sh
+git push --force
+```
+or  
+```sh
+git push -f origin master
+```
+🚨 **Warning:** This will **overwrite the remote repository** and remove any commits after `<some_commit>`. Use this only if you are sure.  
+
+---
+
+### **Option 2: Pull and Merge (If You Want to Keep Remote Changes)**  
+If you want to **keep** the latest remote changes and merge them, do:  
+```sh
+git pull --rebase
+```
+Then push again:  
+```sh
+git push origin master
+```
+This applies your local changes **on top of the latest remote changes**.
+
+---
+
+### **Option 3: If You Want to Reset Remote to Match Your Local**
+If you want the remote repository to **exactly match** your local branch, you can do:  
+```sh
+git push --force origin master
+```
+But be careful, as this will **rewrite history**.
+
+---
+
+### **Which Option to Choose?**
+- **If you want to overwrite the remote repo → Use `git push --force`** ✅  
+- **If you want to keep remote changes and merge → Use `git pull --rebase`**  
+- **If you're unsure → Stop and check with teammates before force-pushing**  
+
+Let me know if you need more clarification!
+
 ### **Next Lesson: Using `.gitignore`**  
 In the next session, we will cover **.gitignore** to prevent uploading sensitive files like API keys and passwords to GitHub.  
 
